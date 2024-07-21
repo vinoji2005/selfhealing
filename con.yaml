@@ -1,0 +1,24 @@
+apiVersion: v1
+data:
+  kibana-configmap.yaml: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: kibana-config
+      namespace: logging
+    data:
+      kibana.yml: |
+        server.name: kibana
+        server.host: "0"
+        elasticsearch.hosts: ["http://elasticsearch:9200"]
+        monitoring.ui.container.elasticsearch.enabled: true
+        elasticsearch.ssl.verificationMode: none
+        status.allowAnonymous: true
+        xpack.encryptedSavedObjects.encryptionKey: "gHZ7wuHTkZOHlnN1yQ3nTLvZP+yzJbbjXoPC1vBGhMo="
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-03-28T17:15:03Z"
+  name: kibana-config
+  namespace: logging
+  resourceVersion: "70872"
+  uid: 7f0020d4-c9b7-45d9-bcc6-930269ad8d6d

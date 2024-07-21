@@ -1,0 +1,114 @@
+
+Kubectl get pod -n ns1 
+
+Kubectl get pod -n ns4
+
+
+http://localhost:31649
+
+http://localhost:32057
+
+curl http://localhost:32057/sdf
+
+http://localhost:31649/dgdgd
+
+
+{
+  "query": {
+    "query_string": {
+      "default_field": "log",
+      "query": "404"
+    }
+  }
+}
+
+
+{
+  "query": {
+    "prefix": {
+      "log": {
+        "value": "404"
+      }
+    }
+  }
+}
+
+
+
+{
+  "text": "Elasticsearch query alert '{{alertName}}' is active:",
+  "attachments": [
+    {
+      "text": "Alert Details:",
+      "fields": [
+        {
+          "title": "Value",
+          "value": "{{context.value}}{{rule.type}}",
+          "short": false
+        },
+        {
+          "title": "Kubernetes container name",
+          "value": "{{context.hits.0._source.kubernetes.container_name}}",
+          "short": true
+        },
+        {
+          "title": "Namespace",
+          "value": "{{context.hits.0._source.kubernetes.namespace_name}}",
+          "short": true
+        },
+        {
+          "title": "Pod name",
+          "value": "{{context.hits.0._source.kubernetes.pod_name}}",
+          "short": true
+        }
+      ]
+    }
+  ]
+}
+
+
+
+
+
+
+@NonCPS
+def parseWebhookPayload(String payload) {
+    def parsedJson = new groovy.json.JsonSlurper().parseText(payload)
+    def actualPayloadString = parsedJson.keySet().iterator().next()
+    def actualPayload = new groovy.json.JsonSlurper().parseText(actualPayloadString)
+    
+    def containerName = actualPayload.attachments[0].fields.find { it.title == 'Kubernetes container name' }?.value
+    def namespace = actualPayload.attachments[0].fields.find { it.title == 'Namespace' }?.value
+    def podName = actualPayload.attachments[0].fields.find { it.title == 'Pod name' }?.value
+    
+    return [containerName, namespace, podName]
+}
+
+pipeline {
+    agent any
+    stages {
+        stage('Process Webhook Payload') {
+            steps {
+                script {
+                    // Assuming WEBHOOK_PAYLOAD is a String containing the payload
+                    def (containerName, namespace, podName) = parseWebhookPayload(env.WEBHOOK_PAYLOAD)
+                    echo "Container Name: ${containerName}"
+                    echo "Namespace: ${namespace}"
+                    echo "Pod Name: ${podName}"
+                    
+                    // Define the list of namespaces where pod deletion is allowed
+                    def allowedNamespaces = ['ns1', 'ns2', 'ns3']
+                    
+                    // Now, proceed with your logic using the extracted variables
+                    // Only delete the pod if its namespace is in the list of allowed namespaces
+                    if (namespace && podName && allowedNamespaces.contains(namespace)) {
+                        echo "Deleting pod ${podName} in namespace ${namespace}"
+                        sh "kubectl delete pod ${podName} --namespace ${namespace}"
+                    } else {
+                        echo "Pod deletion is not allowed in namespace ${namespace}"
+                    }
+                }
+            }
+        }
+    }
+}
